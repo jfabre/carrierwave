@@ -40,7 +40,14 @@ describe CarrierWave::Storage::File do
 
   describe '#cache!' do
     context "when FileUtils.mkdir_p raises Errno::EMLINK" do
-      before { fake_failed_mkdir_p }
+      before { fake_failed_mkdir_p(Errno::EMLINK) }
+      after { storage.cache!(sanitized_temp_file) }
+
+      it { is_expected.to receive(:clean_cache!).with(600) }
+    end
+
+    context "when FileUtils.mkdir_p raises Errno::ENOSPC" do
+      before { fake_failed_mkdir_p(Errno::ENOSPC) }
       after { storage.cache!(sanitized_temp_file) }
 
       it { is_expected.to receive(:clean_cache!).with(600) }
@@ -86,6 +93,13 @@ describe CarrierWave::Storage::File do
       Timecop.freeze(today) { CarrierWave.clean_cached_files! }
 
       expect(Dir.glob("#{cache_dir}/*").size).to eq(2)
+    end
+
+    it "cleans a directory named using old format of cache id" do
+      FileUtils.mkdir_p File.expand_path("#{yesterday.utc.to_i}-100-1234", cache_dir)
+      Timecop.freeze(today) { uploader_class.clean_cached_files!(0) }
+
+      expect(Dir.glob("#{cache_dir}/*").size).to eq(0)
     end
   end
 end

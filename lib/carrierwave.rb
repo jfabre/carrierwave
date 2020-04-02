@@ -34,6 +34,26 @@ if defined?(Merb)
     Dir.glob(File.join(Merb.load_paths[:uploaders])).each {|f| require f }
   end
 
+elsif defined?(Jets)
+
+  module CarrierWave
+    class Turbine < Jets::Turbine
+      initializer "carrierwave.setup_paths" do |app|
+        CarrierWave.root = Jets.root.to_s
+        CarrierWave.tmp_path = "/tmp/carrierwave"
+        CarrierWave.configure do |config|
+          config.cache_dir = "/tmp/carrierwave/uploads/tmp"
+        end
+      end
+
+      initializer "carrierwave.active_record" do
+        ActiveSupport.on_load :active_record do
+          require 'carrierwave/orm/activerecord'
+        end
+      end
+    end
+  end
+
 elsif defined?(Rails)
 
   module CarrierWave
@@ -51,6 +71,10 @@ elsif defined?(Rails)
         ActiveSupport.on_load :active_record do
           require 'carrierwave/orm/activerecord'
         end
+      end
+
+      config.before_eager_load do
+        CarrierWave::Storage::Fog.eager_load
       end
     end
   end

@@ -25,7 +25,7 @@ describe CarrierWave::Uploader do
         let(:bork_file) { File.open(file_path('bork.txt')) }
 
         it "does not raise an integrity error when the file has a whitelisted content type" do
-          allow(uploader).to receive(:content_type_whitelist).and_return(['image/gif'])
+          allow(uploader).to receive(:content_type_whitelist).and_return(['image/png'])
 
           expect { uploader.cache!(ruby_file) }.not_to raise_error
         end
@@ -40,6 +40,12 @@ describe CarrierWave::Uploader do
           allow(uploader).to receive(:content_type_whitelist).and_return([/image\//])
 
           expect { uploader.cache!(bork_file) }.to raise_error(CarrierWave::IntegrityError)
+        end
+
+        it "raises an integrity error which lists the allowed content types" do
+          allow(uploader).to receive(:content_type_whitelist).and_return(['image/gif', 'image/jpg'])
+
+          expect { uploader.cache!(bork_file) }.to raise_error(CarrierWave::IntegrityError, %r{(?:image/gif|image/jpg)})
         end
       end
 
